@@ -1,0 +1,31 @@
+[
+  {
+    "id": 1,
+    "title": "Smartphone Galaxy S23 Ultra",
+    "description": "El último smartphone de Samsung con cámara de 200MP y pantalla AMOLED de 6.8 pulgadas.",
+    "code": "SM-G918B",
+    "price": 1199.99,
+    "status": true,
+    "stock": 50,
+    "category": "Celulares",
+    "thumbnails": [
+      "/images/productos/SM-G918B/principal.jpg",
+      "/images/productos/SM-G918B/negro.png",
+      "/images/productos/SM-G918B/video_miniatura.jpeg"
+    ]
+  },
+  {
+    "id": 2,
+    "title": "Auriculares Inalámbricos Sony WH-1000XM5",
+    "description": "Auriculares con cancelación de ruido líder en la industria y hasta 30 horas de batería.",
+    "code": "WH-1000XM5",
+    "price": 349,
+    "status": true,
+    "stock": 120,
+    "category": "Audio",
+    "thumbnails": [
+      "/images/productos/WH-1000XM5/frontal.webp",
+      "/images/productos/WH-1000XM5/laterales.gif"
+    ]
+  }
+]
