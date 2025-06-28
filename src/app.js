@@ -1,20 +1,56 @@
 import express from "express";
+import { createServer } from "http";
+import { Server } from "socket.io";
+import { engine } from "express-handlebars";
+import path from "path";
+import { fileURLToPath } from "url";
 import ProductManager from "./managers/ProductManager.js";
 import CartManager from "./managers/CartManager.js";
+import viewsRouter from "./routes/views.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
+const server = createServer(app);
+const io = new Server(server);
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Configuración de Handlebars
+app.engine("handlebars", engine());
+app.set("view engine", "handlebars");
+app.set("views", path.join(__dirname, "views"));
+
+// Servir archivos estáticos
+app.use(express.static(path.join(__dirname, "public")));
 
 const productManager = new ProductManager("./src/data/products.json");
 const cartManager = new CartManager("./src/data/carts.json");
 
-//GET - Obtener datos
-app.get("/", (req, res) => {
-  res.json({ status: "success", message: "Hola mundo" });
+// Configuración de Socket.IO
+io.on("connection", (socket) => {
+  console.log("Cliente conectado:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("Cliente desconectado:", socket.id);
+  });
+
+  // Escuchar eventos de productos
+  socket.on("productAdded", (products) => {
+    socket.broadcast.emit("productsUpdated", products);
+  });
+
+  socket.on("productDeleted", (products) => {
+    socket.broadcast.emit("productsUpdated", products);
+  });
 });
 
-// ---- PRODUCTOS ----
+// Rutas de vistas
+app.use("/", viewsRouter);
+
+// ---- PRODUCTOS API ----
 
 app.get("/api/products", async(req, res) => {
   try {
@@ -39,6 +75,9 @@ app.post("/api/products", async(req, res) => {
   try {
     const newProduct = req.body;
     const products = await productManager.addProduct(newProduct);
+    
+    io.emit("productsUpdated", products);
+    
     res.status(201).json({ status: "success", products });
   } catch (error) {
     res.status(400).json({ status: "error", message: error.message });
@@ -49,6 +88,9 @@ app.delete("/api/products/:pid", async(req, res) => {
   try {
     const productId = req.params.pid;
     const products = await productManager.deleteProductById(productId);
+    
+    io.emit("productsUpdated", products);
+    
     res.status(200).json({ status: "success", products });
   } catch (error) {
     res.status(404).json({ status: "error", message: error.message });
@@ -66,7 +108,7 @@ app.put("/api/products/:pid", async(req, res) => {
   }
 });
 
-// ---- CARRITOS ----
+// ---- CARRITOS API ----
 
 app.post("/api/carts", async(req, res) => {
   try {
@@ -97,6 +139,6 @@ app.post("/api/carts/:cid/product/:pid", async(req, res) => {
   }
 });
 
-app.listen(8080, () => {
+server.listen(8080, () => {
   console.log("Servidor iniciado en el puerto 8080");
 }); 

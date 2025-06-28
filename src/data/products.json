@@ -17,15 +17,11 @@
   {
     "id": 2,
     "title": "Auriculares Inalámbricos Sony WH-1000XM5",
-    "description": "Auriculares con cancelación de ruido líder en la industria y hasta 30 horas de batería.",
     "code": "WH-1000XM5",
-    "price": 349,
-    "status": true,
-    "stock": 120,
+    "price": "349",
+    "stock": "120",
     "category": "Audio",
-    "thumbnails": [
-      "/images/productos/WH-1000XM5/frontal.webp",
-      "/images/productos/WH-1000XM5/laterales.gif"
-    ]
+    "thumbnail": "/images/productos/WH-1000XM5/frontal.webp",
+    "description": "Auriculares con cancelación de ruido líder en la industria y hasta 30 horas de batería."
   }
 ]
