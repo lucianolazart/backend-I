@@ -50,14 +50,11 @@ cartRouter.post("/:cid/product/:pid", async(req, res) => {
     const cart = await Cart.findById(cid);
     if(!cart) return res.status(404).json({ status: "error", message: "Carrito no encontrado" });
 
-    // Buscar si el producto ya existe en el carrito
     const existingProduct = cart.products.find(p => p.product.toString() === pid);
     
     if (existingProduct) {
-      // Si el producto ya existe, sumar la cantidad
       existingProduct.quantity += quantity || 1;
     } else {
-      // Si el producto no existe, agregarlo nuevo
       cart.products.push({ product: pid, quantity: quantity || 1 });
     }
     

@@ -4,86 +4,63 @@ import Product from "../models/product.model.js";
 
 const productsRouter = express.Router();
 
-// productsRouter.get("/", async(req, res)=> {
-//   try {
-//     const { limit = 10, page = 1, sort, query } = req.query;
-    
-//     let filter = {};
-//     if (query) {
-//       filter = {
-//         $or: [
-//           { category: { $regex: query, $options: 'i' } },
-//           { status: query === 'true' ? true : query === 'false' ? false : undefined }
-//         ].filter(condition => Object.values(condition)[0] !== undefined)
-//       };
-      
-//       if (filter.$or.length === 0) {
-//         filter = {
-//           $or: [
-//             { title: { $regex: query, $options: 'i' } },
-//             { description: { $regex: query, $options: 'i' } }
-//           ]
-//         };
-//       }
-//     }
-
-//     let sortOption = {};
-//     if (sort === 'asc') {
-//       sortOption = { price: 1 };
-//     } else if (sort === 'desc') {
-//       sortOption = { price: -1 };
-//     }
-
-//     const options = {
-//       limit: parseInt(limit),
-//       page: parseInt(page),
-//       sort: sortOption,
-//       lean: true
-//     };
-
-//     const result = await Product.paginate(filter, options);
-
-//     const baseUrl = req.protocol + '://' + req.get('host') + req.originalUrl.split('?')[0];
-//     const queryParams = new URLSearchParams(req.query);
-    
-//     const prevLink = result.hasPrevPage 
-//       ? `${baseUrl}?${queryParams.toString().replace(/page=\d+/, `page=${result.prevPage}`)}`
-//       : null;
-    
-//     const nextLink = result.hasNextPage 
-//       ? `${baseUrl}?${queryParams.toString().replace(/page=\d+/, `page=${result.nextPage}`)}`
-//       : null;
-
-//     const response = {
-//       status: "success",
-//       payload: result.docs,
-//       totalPages: result.totalPages,
-//       prevPage: result.prevPage,
-//       nextPage: result.nextPage,
-//       page: result.page,
-//       hasPrevPage: result.hasPrevPage,
-//       hasNextPage: result.hasNextPage,
-//       prevLink: prevLink,
-//       nextLink: nextLink
-//     };
-
-//     res.status(200).json(response);
-//   } catch (error) {
-//     res.status(500).json({ status: "error", message: "Error al recuperar los productos" });
-//   }
-// });
-
 productsRouter.get("/", async(req, res)=> {
   try {
-    const { limit = 10, page = 1 } = req.query;
+    const { limit = 10, page = 1, sort, query } = req.query;
 
-    const data = await Product.paginate({}, { limit, page });
+    let filter = {};
+    if (query) {
+      filter = {
+        $or: [
+          { title: { $regex: query, $options: 'i' } },
+          { description: { $regex: query, $options: 'i' } },
+          { category: { $regex: query, $options: 'i' } },
+          { code: { $regex: query, $options: 'i' } }
+        ]
+      };
+    }
+
+    const options = { 
+      limit: parseInt(limit), 
+      page: parseInt(page),
+      lean: true
+    };
+
+    if (sort) {
+      const sortOrder = sort.toLowerCase() === 'desc' ? -1 : 1;
+      options.sort = { price: sortOrder };
+    }
+
+    const data = await Product.paginate(filter, options);
     const products = data.docs;
     delete data.docs;
 
-    res.status(200).json({ status: "sucess", payload: products, ...data });
+    const baseUrl = req.originalUrl.split('?')[0];
+    const queryParams = new URLSearchParams(req.query);
+    
+    const prevLink = data.hasPrevPage 
+      ? `${baseUrl}?${new URLSearchParams({ ...req.query, page: data.prevPage }).toString()}`
+      : null;
+    
+    const nextLink = data.hasNextPage 
+      ? `${baseUrl}?${new URLSearchParams({ ...req.query, page: data.nextPage }).toString()}`
+      : null;
+
+    res.status(200).json({
+      status: "success",
+      payload: products,
+      totalPages: data.totalPages,
+      prevPage: data.prevPage,
+      nextPage: data.nextPage,
+      page: data.page,
+      hasPrevPage: data.hasPrevPage,
+      hasNextPage: data.hasNextPage,
+      prevLink: prevLink,
+      nextLink: nextLink
+    });
   } catch (error) {
-    res.status(500).json({ status: "error", message: "Error al recuperar los productos" })
+    console.error("Error al recuperar productos:", error);
+    res.status(500).json({ status: "error", message: "Error al recuperar los productos" });
   }
 });
 

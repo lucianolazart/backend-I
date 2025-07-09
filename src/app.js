@@ -39,6 +39,9 @@ app.engine("handlebars", engine({
         return sum + (item.product.price * item.quantity);
       }, 0);
       return total.toFixed(2);
+    },
+    eq: function(a, b) {
+      return a === b;
     }
   }
 }));

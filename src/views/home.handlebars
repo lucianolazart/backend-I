@@ -7,20 +7,32 @@
             </button>
         </div>
         
-        <!-- Filtros y ordenamiento -->
         <div class="row mb-4">
-            <div class="col-md-6">
+            <div class="col-md-8">
                 <form method="GET" action="/" class="d-flex gap-2">
-                    <input type="text" name="query" value="{{query}}" class="form-control" placeholder="Buscar por categoría, título...">
+                    <input type="text" name="query" value="{{query}}" class="form-control" placeholder="Buscar por categoría, título, descripción...">
+                    <select name="sort" class="form-select" style="width: auto;">
+                        <option value="">Sin ordenar</option>
+                        <option value="asc" {{#if (eq sort "asc")}}selected{{/if}}>Precio: Menor a Mayor</option>
+                        <option value="desc" {{#if (eq sort "desc")}}selected{{/if}}>Precio: Mayor a Menor</option>
+                    </select>
                     <button type="submit" class="btn btn-primary">Filtrar</button>
                     {{#if query}}
                         <a href="/" class="btn btn-secondary">Limpiar</a>
                     {{/if}}
                 </form>
             </div>
+            <div class="col-md-4">
+                <div class="d-flex justify-content-end">
+                    <div class="btn-group" role="group">
+                        <a href="?{{#if query}}query={{query}}&{{/if}}{{#if sort}}sort={{sort}}&{{/if}}limit=4" class="btn btn-outline-primary {{#if (eq limit 4)}}active{{/if}}">4</a>
+                        <a href="?{{#if query}}query={{query}}&{{/if}}{{#if sort}}sort={{sort}}&{{/if}}limit=8" class="btn btn-outline-primary {{#if (eq limit 8)}}active{{/if}}">8</a>
+                        <a href="?{{#if query}}query={{query}}&{{/if}}{{#if sort}}sort={{sort}}&{{/if}}limit=12" class="btn btn-outline-primary {{#if (eq limit 12)}}active{{/if}}">12</a>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Información de paginación -->
         {{#if totalPages}}
         <div class="row mb-3">
             <div class="col-12">
@@ -75,13 +87,12 @@
             {{/if}}
         </div>
 
-        <!-- Paginación mejorada -->
         {{#if totalPages}}
         <nav aria-label="Navegación de páginas">
             <ul class="pagination justify-content-center">
                 {{#if hasPrevPage}}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{prevPage}}{{#if query}}&query={{query}}{{/if}}{{#if sort}}&sort={{sort}}{{/if}}">Anterior</a>
+                    <a class="page-link" href="{{prevLink}}">Anterior</a>
                 </li>
                 {{/if}}
                 
@@ -93,7 +104,7 @@
                 
                 {{#if hasNextPage}}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{nextPage}}{{#if query}}&query={{query}}{{/if}}{{#if sort}}&sort={{sort}}{{/if}}">Siguiente</a>
+                    <a class="page-link" href="{{nextLink}}">Siguiente</a>
                 </li>
                 {{/if}}
             </ul>
@@ -104,7 +115,6 @@
 
 <script>
 function addToCart(productId) {
-    // Primero verificar si existe un carrito abierto
     fetch('/api/carts/open', {
         method: 'GET',
         headers: {
@@ -121,9 +131,7 @@ function addToCart(productId) {
         let cartId;
         
         if (data.status === 'success' && data.payload && data.payload.length > 0) {
-            // Si hay carritos abiertos, usar el primero
             cartId = data.payload[0]._id;
-            // Agregar producto al carrito existente
             return fetch(`/api/carts/${cartId}/product/${productId}`, {
                 method: 'POST',
                 headers: {
@@ -132,7 +140,6 @@ function addToCart(productId) {
                 body: JSON.stringify({ quantity: 1 })
             });
         } else {
-            // Si no hay carritos abiertos, crear uno nuevo
             return fetch('/api/carts', {
                 method: 'POST',
                 headers: {
@@ -150,7 +157,6 @@ function addToCart(productId) {
     .then(data => {
         if (data.status === 'success') {
             if (data.payload.products && data.payload.products.length === 0) {
-                // Es la respuesta de crear carrito, ahora agregar el producto
                 const cartId = data.payload._id;
                 return fetch(`/api/carts/${cartId}/product/${productId}`, {
                     method: 'POST',
@@ -160,7 +166,6 @@ function addToCart(productId) {
                     body: JSON.stringify({ quantity: 1 })
                 });
             } else {
-                // Es la respuesta de agregar producto
                 alert('Producto agregado al carrito exitosamente!');
                 return null;
             }
@@ -189,7 +194,6 @@ function addToCart(productId) {
 }
 
 function goToCart() {
-    // Verificar si existe un carrito abierto
     fetch('/api/carts/open', {
         method: 'GET',
         headers: {
@@ -199,11 +203,9 @@ function goToCart() {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success' && data.payload && data.payload.length > 0) {
-            // Si hay carritos abiertos, ir al primero
             const cartId = data.payload[0]._id;
             window.location.href = `/carts/${cartId}`;
         } else {
-            // Si no hay carritos abiertos, mostrar mensaje
             alert('No hay carritos abiertos. Agrega productos para crear uno.');
         }
     })

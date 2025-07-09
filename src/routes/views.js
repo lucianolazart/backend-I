@@ -5,95 +5,75 @@ import Cart from "../models/cart.model.js";
 
 const router = express.Router();
 
-// router.get("/", async (req, res) => {
-//   try {
-//     const { limit = 4, page = 1, sort, query } = req.query;
-
-//     let filter = {};
-//     if (query) {
-//       filter = {
-//         $or: [
-//           { category: { $regex: query, $options: 'i' } },
-//           { status: query === 'true' ? true : query === 'false' ? false : undefined }
-//         ].filter(condition => Object.values(condition)[0] !== undefined)
-//       };
-      
-//       if (filter.$or.length === 0) {
-//         filter = {
-//           $or: [
-//             { title: { $regex: query, $options: 'i' } },
-//             { description: { $regex: query, $options: 'i' } }
-//           ]
-//         };
-//       }
-//     }
-
-//     let sortOption = {};
-//     if (sort === 'asc') {
-//       sortOption = { price: 1 };
-//     } else if (sort === 'desc') {
-//       sortOption = { price: -1 };
-//     }
-
-//     const options = {
-//       limit: parseInt(limit),
-//       page: parseInt(page),
-//       sort: sortOption,
-//       lean: true
-//     };
-
-//     const data = await Product.paginate(filter, options);
-//     const products = data.docs;
-
-//     const baseUrl = req.protocol + '://' + req.get('host') + req.originalUrl.split('?')[0];
-//     const queryParams = new URLSearchParams(req.query);
-    
-//     const links = [];
-//     for(let i = 1; i <= data.totalPages; i++) {
-//       const linkParams = new URLSearchParams(queryParams);
-//       linkParams.set('page', i.toString());
-//       links.push({ 
-//         text: i, 
-//         link: `${baseUrl}?${linkParams.toString()}`,
-//         active: i === data.page
-//       });
-//     }
-
-//     res.render("home", {
-//       title: "Inicio - Mi Tienda",
-//       products: products,
-//       links: links,
-//       currentPage: data.page,
-//       totalPages: data.totalPages,
-//       hasPrevPage: data.hasPrevPage,
-//       hasNextPage: data.hasNextPage,
-//       prevPage: data.prevPage,
-//       nextPage: data.nextPage,
-//       query: query || '',
-//       sort: sort || ''
-//     });
-//   } catch (error) {
-//     console.error("Error al obtener productos:", error);
-//     res.status(500).send({ message: error.message });
-//   }
-// });
 
 router.get("/", async(req, res)=> {
   try{
-    const { limit = 4, page = 1 } = req.query;
+    const { limit = 4, page = 1, sort, query } = req.query;
 
-    const data = await Product.paginate({}, { limit, page, lean: true });
+    let filter = {};
+    if (query) {
+      filter = {
+        $or: [
+          { title: { $regex: query, $options: 'i' } },
+          { description: { $regex: query, $options: 'i' } },
+          { category: { $regex: query, $options: 'i' } },
+          { code: { $regex: query, $options: 'i' } }
+        ]
+      };
+    }
+
+    const options = { 
+      limit: parseInt(limit), 
+      page: parseInt(page),
+      lean: true
+    };
+
+    if (sort) {
+      const sortOrder = sort.toLowerCase() === 'desc' ? -1 : 1;
+      options.sort = { price: sortOrder };
+    }
+
+    const data = await Product.paginate(filter, options);
     const products = data.docs;
     delete data.docs;
 
     const links = [];
-
-    for(let i = 1 ; i <= data.totalPages; i++){
-      links.push({ text: i, link: `?limit=${limit}&page=${i}` });
+    for(let i = 1; i <= data.totalPages; i++){
+      const linkParams = new URLSearchParams({ limit, page: i });
+      if (query) linkParams.set('query', query);
+      if (sort) linkParams.set('sort', sort);
+      links.push({ 
+        text: i, 
+        link: `?${linkParams.toString()}`,
+        active: i === data.page
+      });
     }
 
-    res.render("home", { products, links });
+    const prevLink = data.hasPrevPage 
+      ? `?${new URLSearchParams({ ...req.query, page: data.prevPage }).toString()}`
+      : null;
+    
+    const nextLink = data.hasNextPage 
+      ? `?${new URLSearchParams({ ...req.query, page: data.nextPage }).toString()}`
+      : null;
+
+    res.render("home", { 
+      products, 
+      links,
+      totalPages: data.totalPages,
+      currentPage: data.page,
+      hasPrevPage: data.hasPrevPage,
+      hasNextPage: data.hasNextPage,
+      prevPage: data.prevPage,
+      nextPage: data.nextPage,
+      prevLink,
+      nextLink,
+      query,
+      sort,
+      limit: parseInt(limit)
+    });
   }catch(error){
+    console.error("Error al cargar productos:", error);
     res.status(500).send({ message: error.message });
   }
 });
@@ -135,9 +115,6 @@ router.get("/carts/:cid", async (req, res) => {
   try {
     const cartId = req.params.cid;
     const cart = await Cart.findById(cartId).populate("products.product").lean();
-    console.log('cart', cart);
-    console.log('cart.products', cart?.products);
-    console.log('cart.products.length', cart?.products?.length);
     
     if (!cart) {
       return res.status(404).render("error", {
