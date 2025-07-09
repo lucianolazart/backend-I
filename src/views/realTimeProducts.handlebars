@@ -57,8 +57,11 @@
                 <div class="row" id="products-container">
                     {{#if products.length}}
                         {{#each products}}
-                        <div class="col-md-4 col-lg-3 mb-4 product-item" data-product-id="{{id}}">
+                        <div class="col-md-4 col-lg-3 mb-4 product-item" data-product-id="{{_id}}">
                             <div class="card h-100 shadow-sm">
+                                {{#if thumbnail}}
+                                <img src="{{thumbnail}}" class="card-img-top" alt="{{title}}" style="height: 200px; object-fit: cover;">
+                                {{/if}}
                                 <div class="card-body">
                                     <h5 class="card-title">{{title}}</h5>
                                     <p class="card-text text-muted">{{description}}</p>
@@ -73,10 +76,9 @@
                                 <div class="card-footer bg-transparent">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
-                                            <small class="text-muted">ID: {{id}}</small><br>
                                             <small class="text-muted">Código: {{code}}</small>
                                         </div>
-                                        <button class="btn btn-danger btn-sm delete-product" data-product-id="{{id}}">
+                                        <button class="btn btn-danger btn-sm delete-product" data-product-id="{{_id}}">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </div>
@@ -118,7 +120,6 @@
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                socket.emit('productAdded', data.products);
                 e.target.reset();
             } else {
                 alert('Error al agregar el producto: ' + data.message);
@@ -142,7 +143,6 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        socket.emit('productDeleted', data.products);
                     } else {
                         alert('Error al eliminar el producto: ' + data.message);
                     }
@@ -173,8 +173,12 @@
             `;
         } else {
             container.innerHTML = products.map(product => `
-                <div class="col-md-4 col-lg-3 mb-4 product-item" data-product-id="${product.id}">
+                <div class="col-md-4 col-lg-3 mb-4 product-item" data-product-id="${product._id}">
                     <div class="card h-100 shadow-sm">
+                        ${product.thumbnail ? 
+                            `<img src="${product.thumbnail}" class="card-img-top" alt="${product.title}" style="height: 200px; object-fit: cover;">` : 
+                            ''
+                        }
                         <div class="card-body">
                             <h5 class="card-title">${product.title}</h5>
                             <p class="card-text text-muted">${product.description}</p>
@@ -189,10 +193,9 @@
                         <div class="card-footer bg-transparent">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <small class="text-muted">ID: ${product.id}</small><br>
                                     <small class="text-muted">Código: ${product.code}</small>
                                 </div>
-                                <button class="btn btn-danger btn-sm delete-product" data-product-id="${product.id}">
+                                <button class="btn btn-danger btn-sm delete-product" data-product-id="${product._id}">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>

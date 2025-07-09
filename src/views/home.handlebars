@@ -1,11 +1,45 @@
 <div class="row">
     <div class="col-12">
-        <h1 class="mb-4">Productos Disponibles</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Productos Disponibles</h1>
+            <button class="btn btn-primary" onclick="goToCart()">
+                <i class="bi bi-cart3 me-2"></i>Ir al Carrito
+            </button>
+        </div>
+        
+        <!-- Filtros y ordenamiento -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <form method="GET" action="/" class="d-flex gap-2">
+                    <input type="text" name="query" value="{{query}}" class="form-control" placeholder="Buscar por categoría, título...">
+                    <button type="submit" class="btn btn-primary">Filtrar</button>
+                    {{#if query}}
+                        <a href="/" class="btn btn-secondary">Limpiar</a>
+                    {{/if}}
+                </form>
+            </div>
+        </div>
+
+        <!-- Información de paginación -->
+        {{#if totalPages}}
+        <div class="row mb-3">
+            <div class="col-12">
+                <small class="text-muted">
+                    Página {{currentPage}} de {{totalPages}} 
+                    {{#if query}}(filtrado por: "{{query}}"){{/if}}
+                </small>
+            </div>
+        </div>
+        {{/if}}
+
         <div class="row" id="products-container">
             {{#if products.length}}
                 {{#each products}}
                 <div class="col-md-4 col-lg-3 mb-4">
                     <div class="card h-100 shadow-sm">
+                        {{#if thumbnail}}
+                        <img src="{{thumbnail}}" class="card-img-top" alt="{{title}}" style="height: 200px; object-fit: cover;">
+                        {{/if}}
                         <div class="card-body">
                             <h5 class="card-title">{{title}}</h5>
                             <p class="card-text text-muted">{{description}}</p>
@@ -18,9 +52,14 @@
                             </div>
                         </div>
                         <div class="card-footer bg-transparent">
-                            <div class="d-flex justify-content-between">
-                                <span class="text-muted">ID: {{id}}</span>
-                                <span class="text-muted">Código: {{code}}</span>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <small class="text-muted">Código: {{code}}</small>
+                                </div>
+                                <div class="mt-2 d-flex gap-2">
+                                    <a href="/products/{{_id}}" class="btn btn-outline-primary btn-sm flex-fill">Ver Detalles</a>
+                                    <button class="btn btn-success btn-sm" onclick="addToCart('{{_id}}')">Agregar al Carrito</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -35,5 +74,142 @@
                 </div>
             {{/if}}
         </div>
+
+        <!-- Paginación mejorada -->
+        {{#if totalPages}}
+        <nav aria-label="Navegación de páginas">
+            <ul class="pagination justify-content-center">
+                {{#if hasPrevPage}}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{prevPage}}{{#if query}}&query={{query}}{{/if}}{{#if sort}}&sort={{sort}}{{/if}}">Anterior</a>
+                </li>
+                {{/if}}
+                
+                {{#each links}}
+                <li class="page-item {{#if active}}active{{/if}}">
+                    <a class="page-link" href="{{link}}">{{text}}</a>
+                </li>
+                {{/each}}
+                
+                {{#if hasNextPage}}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{nextPage}}{{#if query}}&query={{query}}{{/if}}{{#if sort}}&sort={{sort}}{{/if}}">Siguiente</a>
+                </li>
+                {{/if}}
+            </ul>
+        </nav>
+        {{/if}}
     </div>
-</div> 
+</div>
+
+<script>
+function addToCart(productId) {
+    // Primero verificar si existe un carrito abierto
+    fetch('/api/carts/open', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error al verificar carritos abiertos');
+        }
+        return response.json();
+    })
+    .then(data => {
+        let cartId;
+        
+        if (data.status === 'success' && data.payload && data.payload.length > 0) {
+            // Si hay carritos abiertos, usar el primero
+            cartId = data.payload[0]._id;
+            // Agregar producto al carrito existente
+            return fetch(`/api/carts/${cartId}/product/${productId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ quantity: 1 })
+            });
+        } else {
+            // Si no hay carritos abiertos, crear uno nuevo
+            return fetch('/api/carts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error en la operación del carrito');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            if (data.payload.products && data.payload.products.length === 0) {
+                // Es la respuesta de crear carrito, ahora agregar el producto
+                const cartId = data.payload._id;
+                return fetch(`/api/carts/${cartId}/product/${productId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ quantity: 1 })
+                });
+            } else {
+                // Es la respuesta de agregar producto
+                alert('Producto agregado al carrito exitosamente!');
+                return null;
+            }
+        } else {
+            throw new Error('Error al procesar el carrito');
+        }
+    })
+    .then(response => {
+        if (response) {
+            if (!response.ok) {
+                throw new Error('Error al agregar producto al carrito');
+            }
+            return response.json();
+        }
+        return null;
+    })
+    .then(data => {
+        if (data && data.status === 'success') {
+            alert('Producto agregado al carrito exitosamente!');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al agregar producto al carrito: ' + error.message);
+    });
+}
+
+function goToCart() {
+    // Verificar si existe un carrito abierto
+    fetch('/api/carts/open', {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success' && data.payload && data.payload.length > 0) {
+            // Si hay carritos abiertos, ir al primero
+            const cartId = data.payload[0]._id;
+            window.location.href = `/carts/${cartId}`;
+        } else {
+            // Si no hay carritos abiertos, mostrar mensaje
+            alert('No hay carritos abiertos. Agrega productos para crear uno.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al acceder al carrito');
+    });
+}
+</script> 

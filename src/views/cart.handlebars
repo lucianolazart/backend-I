@@ -1,0 +1,193 @@
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">Inicio</a></li>
+                    <li class="breadcrumb-item active">Carrito</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0">
+                        <i class="bi bi-cart me-2"></i>
+                        Carrito
+                    </h2>
+                </div>
+                <div class="card-body">
+                    {{#if cart.products}}
+                    {{#if cart.products.length}}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Precio</th>
+                                        <th>Cantidad</th>
+                                        <th>Subtotal</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {{#each cart.products}}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                {{#if this.product.thumbnail}}
+                                                <img src="{{this.product.thumbnail}}" 
+                                                     alt="{{this.product.title}}" 
+                                                     class="me-3" 
+                                                     style="width: 50px; height: 50px; object-fit: cover;">
+                                                {{/if}}
+                                                <div>
+                                                    <h6 class="mb-0">{{this.product.title}}</h6>
+                                                    <small class="text-muted">{{this.product.category}}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>${{this.product.price}}</td>
+                                        <td>
+                                            <span class="badge bg-primary fs-6">{{this.quantity}}</span>
+                                        </td>
+                                        <td>
+                                            <strong>${{multiply this.product.price this.quantity}}</strong>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-danger btn-sm" 
+                                                    onclick="removeFromCart('{{../cart._id}}', '{{this.product._id}}')">
+                                                <i class="bi bi-trash"></i> Eliminar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {{/each}}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-active">
+                                        <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                                        <td>
+                                            <strong class="text-primary fs-5">
+                                                ${{calculateTotal cart.products}}
+                                            </strong>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-warning btn-sm" 
+                                                    onclick="clearCart('{{cart._id}}')">
+                                                <i class="bi bi-trash"></i> Vaciar Carrito
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="/" class="btn btn-outline-primary">
+                                <i class="bi bi-arrow-left me-2"></i>Seguir Comprando
+                            </a>
+                            <button class="btn btn-success" onclick="checkout()">
+                                <i class="bi bi-credit-card me-2"></i>Confirmar Compra
+                            </button>
+                        </div>
+                    {{else}}
+                        <div class="text-center py-5">
+                            <i class="bi bi-cart-x display-1 text-muted"></i>
+                            <h3 class="mt-3">Tu carrito está vacío</h3>
+                            <p class="text-muted">No hay productos en este carrito.</p>
+                            <a href="/" class="btn btn-primary">
+                                <i class="bi bi-shop me-2"></i>Ir a la Tienda
+                            </a>
+                        </div>
+                    {{/if}}
+                    {{else}}
+                        <div class="text-center py-5">
+                            <i class="bi bi-cart-x display-1 text-muted"></i>
+                            <h3 class="mt-3">Tu carrito está vacío</h3>
+                            <p class="text-muted">No hay productos en este carrito.</p>
+                            <a href="/" class="btn btn-primary">
+                                <i class="bi bi-shop me-2"></i>Ir a la Tienda
+                            </a>
+                        </div>
+                    {{/if}}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function removeFromCart(cartId, productId) {
+    if (confirm('¿Estás seguro de que quieres eliminar este producto del carrito?')) {
+        fetch(`/api/carts/${cartId}/products/${productId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error al eliminar el producto del carrito');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al eliminar el producto del carrito');
+        });
+    }
+}
+
+function clearCart(cartId) {
+    if (confirm('¿Estás seguro de que quieres vaciar todo el carrito?')) {
+        fetch(`/api/carts/${cartId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error al vaciar el carrito');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al vaciar el carrito');
+        });
+    }
+}
+
+function checkout() {
+    if (confirm('¿Estás seguro de que quieres confirmar la compra? Esta acción cerrará el carrito.')) {
+        const cartId = '{{cart._id}}';
+        fetch(`/api/carts/${cartId}/close`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('¡Compra confirmada exitosamente! El carrito ha sido cerrado.');
+                window.location.href = '/';
+            } else {
+                alert('Error al confirmar la compra: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al confirmar la compra');
+        });
+    }
+}
+</script> 
